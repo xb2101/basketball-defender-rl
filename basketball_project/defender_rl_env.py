@@ -57,7 +57,7 @@ class DefenderRLEnv(gym.Env):
         self.step_dt = 0.05
         self.max_steps = 500          # increased from 150
         self.current_step = 0
-        self.paint_radius = 0.8
+        self.paint_radius = 1.5
         self.show_markers = False  # enabled in run_model.py
 
         # FIX 1: Allow backwards movement (low=-0.6 not 0.0)
@@ -167,7 +167,7 @@ class DefenderRLEnv(gym.Env):
             lateral_dist = float('inf')
 
         # Combined reward — ONLY high when BOTH at blocking point AND on interception line
-        position_reward = 10.0 * math.exp(-2.0 * dist_to_block) * math.exp(-3.0 * lateral_dist)
+        position_reward = 10.0 * math.exp(-3.0 * dist_to_block) * math.exp(-3.0 * lateral_dist)
 
         # Collision avoidance
         dist_to_scorer = math.sqrt(

@@ -16,7 +16,7 @@ def main():
         check_env(env, warn=True)
 
         checkpoint_callback = CheckpointCallback(
-            save_freq=50_000,
+            save_freq=25_000,
             save_path='./checkpoints/',
             name_prefix='defender_ppo'
         )
@@ -46,7 +46,7 @@ def main():
 
         print("Starting training...")
         model.learn(
-            total_timesteps=100_000,
+            total_timesteps=200_000,
             reset_num_timesteps=False,
             callback=checkpoint_callback
         )
