@@ -152,10 +152,7 @@ class DefenderRLEnv(gym.Env):
         dy = target_y - self.robot_y
         dist_to_block = math.sqrt(dx * dx + dy * dy)
 
-        # Proximity reward
-        proximity_reward = 2.0 * math.exp(-1.5 * dist_to_block)
-
-        # Interception line reward
+        # Interception line calculation
         ball_to_goal_x = self.goal_x - self.scorer_x
         ball_to_goal_y = self.goal_y - self.scorer_y
         btg_dist = math.sqrt(ball_to_goal_x**2 + ball_to_goal_y**2)
@@ -166,9 +163,21 @@ class DefenderRLEnv(gym.Env):
             proj_x = self.scorer_x + t * ball_to_goal_x
             proj_y = self.scorer_y + t * ball_to_goal_y
             lateral_dist = math.sqrt((self.robot_x - proj_x)**2 + (self.robot_y - proj_y)**2)
-            interception_reward = 5.0 * math.exp(-3.0 * lateral_dist)
         else:
-            interception_reward = 0.0
+            lateral_dist = float('inf')
+
+        # Combined reward — ONLY high when BOTH at blocking point AND on interception line
+        position_reward = 10.0 * math.exp(-2.0 * dist_to_block) * math.exp(-3.0 * lateral_dist)
+
+        # Collision avoidance
+        dist_to_scorer = math.sqrt(
+            (self.robot_x - self.scorer_x)**2 +
+            (self.robot_y - self.scorer_y)**2
+        )
+        if dist_to_scorer < 0.5:
+            collision_penalty = -5.0
+        else:
+            collision_penalty = 0.0
 
         # Movement reward — only when scorer is moving AND robot is not at blocking point
         scorer_speed = math.sqrt(self.scorer_vx**2 + self.scorer_vy**2)
@@ -184,7 +193,7 @@ class DefenderRLEnv(gym.Env):
         # Goal penalty
         goal_penalty = -15.0 if self._scorer_reached_paint() else 0.0
 
-        return proximity_reward + interception_reward + movement_reward + time_penalty + goal_penalty
+        return position_reward + movement_reward + collision_penalty + time_penalty + goal_penalty
         
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x

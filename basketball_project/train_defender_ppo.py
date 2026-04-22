@@ -21,10 +21,10 @@ def main():
             name_prefix='defender_ppo'
         )
 
-        if os.path.exists("checkpoints/defender_ppo_400000_steps.zip"):
-            print("Loading 400k checkpoint...")
-            model = PPO.load("checkpoints/defender_ppo_400000_steps", env=env, device='cpu')
-        elif os.path.exists("defender_ppo_model.zip"):
+        #if os.path.exists("checkpoints/defender_ppo_450000_steps.zip"):
+            #print("Loading 400k checkpoint...")
+            #model = PPO.load("checkpoints/defender_ppo_450000_steps", env=env, device='cpu')
+        if os.path.exists("defender_ppo_model.zip"):
             print("Loading existing model...")
             model = PPO.load("defender_ppo_model", env=env, device='cpu')
         else:
