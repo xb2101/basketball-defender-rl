@@ -175,7 +175,7 @@ class DefenderRLEnv(gym.Env):
             (self.robot_x - self.scorer_x)**2 +
             (self.robot_y - self.scorer_y)**2
         )
-        if dist_to_scorer > 2.5:
+        if dist_to_scorer > 1.5:
             far_penalty = -0.5 * (dist_to_scorer - 2.5)
         else:
             far_penalty = 0.0
