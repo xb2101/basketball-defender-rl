@@ -46,7 +46,7 @@ def main():
 
         print("Starting training...")
         model.learn(
-            total_timesteps=200_000,
+            total_timesteps=100_000,
             reset_num_timesteps=False,
             callback=checkpoint_callback
         )
