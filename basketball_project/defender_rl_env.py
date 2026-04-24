@@ -155,38 +155,31 @@ class DefenderRLEnv(gym.Env):
         dx = target_x - self.robot_x
         dy = target_y - self.robot_y
         dist_to_block = math.sqrt(dx * dx + dy * dy)
- 
-        # --- Primary signal: be at the blocking point ---
-        # Scale=3.0 → reward ≈ 0.05 at 1 m away, ≈ 1.0 at 0 m.
-        # Multiplier=5.0 keeps total reward in a healthy range.
-        blocking_reward = 5.0 * math.exp(-3.0 * dist_to_block)
- 
-        # --- Small facing bonus: angle between robot heading and
-        #     direction toward blocking point.
-        #     Discourages spinning in place without moving. ---
+
+        # Linear penalty — constant gradient no matter how far away
+        distance_penalty = -0.5* dist_to_block
+
+        # Bonus for being very close — gives a clear target to aim for
+        close_bonus = 3.0 if dist_to_block < 0.3 else 0.0
+
+        # Small facing bonus — still discourages spinning
         desired_heading = math.atan2(dy, dx)
         heading_error = desired_heading - self.robot_yaw
-        # Wrap to [-pi, pi]
         heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
-        # cos maps 0 error → +1, pi error → -1; scale small so it
-        # guides rather than dominates.
         facing_reward = 0.3 * math.cos(heading_error)
- 
-        # --- Collision penalty ---
+
+        # Collision penalty
         dist_to_scorer = math.sqrt(
             (self.robot_x - self.scorer_x) ** 2 +
             (self.robot_y - self.scorer_y) ** 2
         )
         collision_penalty = -5.0 if dist_to_scorer < 0.6 else 0.0
- 
-        # --- Goal / paint penalty ---
+
+        # Goal penalty
         goal_penalty = -15.0 if self._scorer_reached_paint() else 0.0
- 
-        # --- Small time cost to encourage urgency ---
-        time_penalty = -0.05
- 
-        return (blocking_reward + facing_reward +
-                collision_penalty + goal_penalty + time_penalty)
+
+        return (distance_penalty + close_bonus + facing_reward +
+                collision_penalty + goal_penalty)
     
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x

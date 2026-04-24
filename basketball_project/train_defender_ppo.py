@@ -17,7 +17,7 @@ def main():
 
         checkpoint_callback = CheckpointCallback(
             save_freq=50_000,
-            save_path='./checkpoints/',
+            save_path='./checkpoints_simple2/',
             name_prefix='defender_ppo'
         )
 
@@ -33,26 +33,26 @@ def main():
                 policy="MlpPolicy",
                 env=env,
                 verbose=1,
-                learning_rate=1e-4,
-                n_steps=4096,
+                learning_rate=3e-4, # higher than before — fresh start can afford it
+                n_steps=2048,       # shorter rollout → faster feedback on simple reward
                 batch_size=128,
                 gamma=0.99,
                 gae_lambda=0.95,
                 clip_range=0.2,
                 ent_coef=0.01,
                 device='cpu',
-                tensorboard_log="./tb_logs/"
+                tensorboard_log="./tb_logs_expB2/"
             )
 
         print("Starting training...")
         model.learn(
-            total_timesteps=200_000,
-            reset_num_timesteps=False,
+            total_timesteps=300_000,
+            reset_num_timesteps=True,
             callback=checkpoint_callback
         )
 
         print("Saving model...")
-        model.save("defender_ppo_model")
+        model.save("defender_ppo_model_expB_linear")
         print("Done.")
 
     finally:
