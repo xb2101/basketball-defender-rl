@@ -147,7 +147,7 @@ class DefenderRLEnv(gym.Env):
         ], dtype=np.float32)
 
     # ------------------------------------------------------------------
-    # Reward  (Experiment B — simplified)
+    # Reward  (Experiment B — Gaussian)
     # ------------------------------------------------------------------
  
     def _compute_reward(self):
@@ -156,13 +156,10 @@ class DefenderRLEnv(gym.Env):
         dy = target_y - self.robot_y
         dist_to_block = math.sqrt(dx * dx + dy * dy)
 
-        # Linear penalty — constant gradient no matter how far away
-        distance_penalty = -0.5* dist_to_block
+        # Primary signal: be at the blocking point
+        blocking_reward = 5.0 * math.exp(-3.0 * dist_to_block)
 
-        # Bonus for being very close — gives a clear target to aim for
-        close_bonus = 3.0 if dist_to_block < 0.3 else 0.0
-
-        # Small facing bonus — still discourages spinning
+        # Small facing bonus — discourages spinning in place
         desired_heading = math.atan2(dy, dx)
         heading_error = desired_heading - self.robot_yaw
         heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
@@ -178,9 +175,12 @@ class DefenderRLEnv(gym.Env):
         # Goal penalty
         goal_penalty = -15.0 if self._scorer_reached_paint() else 0.0
 
-        return (distance_penalty + close_bonus + facing_reward +
-                collision_penalty + goal_penalty)
-    
+        # Time penalty
+        time_penalty = -0.05
+
+        return (blocking_reward + facing_reward +
+                collision_penalty + goal_penalty + time_penalty)
+        
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x
         dy = self.goal_y - self.scorer_y

@@ -17,7 +17,7 @@ def main():
 
         checkpoint_callback = CheckpointCallback(
             save_freq=50_000,
-            save_path='./checkpoints_simple2/',
+            save_path='./checkpoints_gaussian/',
             name_prefix='defender_ppo'
         )
 
@@ -41,7 +41,7 @@ def main():
                 clip_range=0.2,
                 ent_coef=0.01,
                 device='cpu',
-                tensorboard_log="./tb_logs_expB2/"
+                tensorboard_log="./tb_logs_expGaussian/"
             )
 
         print("Starting training...")
@@ -52,7 +52,7 @@ def main():
         )
 
         print("Saving model...")
-        model.save("defender_ppo_model_expB_linear")
+        model.save("defender_ppo_model_expB_Gaussian")
         print("Done.")
 
     finally:
