@@ -1,0 +1,7 @@
+checkpoints/
+checkpoints_backup/
+checkpoints_stage1/
+*.zip
+tb_logs*/
+__pycache__/
+*.pyc

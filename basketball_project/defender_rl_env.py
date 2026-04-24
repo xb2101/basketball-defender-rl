@@ -146,58 +146,47 @@ class DefenderRLEnv(gym.Env):
             dist_scorer_to_goal,
         ], dtype=np.float32)
 
+    # ------------------------------------------------------------------
+    # Reward  (Experiment B — simplified)
+    # ------------------------------------------------------------------
+ 
     def _compute_reward(self):
         target_x, target_y = self._get_blocking_point()
         dx = target_x - self.robot_x
         dy = target_y - self.robot_y
         dist_to_block = math.sqrt(dx * dx + dy * dy)
-
-        # Proximity reward
-        proximity_reward = 2.5 * math.exp(-2.0 * dist_to_block)
-
-        # Interception line reward
-        ball_to_goal_x = self.goal_x - self.scorer_x
-        ball_to_goal_y = self.goal_y - self.scorer_y
-        btg_dist = math.sqrt(ball_to_goal_x**2 + ball_to_goal_y**2)
-        if btg_dist > 1e-6:
-            t = ((self.robot_x - self.scorer_x) * ball_to_goal_x +
-                (self.robot_y - self.scorer_y) * ball_to_goal_y) / (btg_dist ** 2)
-            t = max(0.0, min(1.0, t))
-            proj_x = self.scorer_x + t * ball_to_goal_x
-            proj_y = self.scorer_y + t * ball_to_goal_y
-            lateral_dist = math.sqrt((self.robot_x - proj_x)**2 + (self.robot_y - proj_y)**2)
-            interception_reward = 5.0 * math.exp(-3.0 * lateral_dist)
-        else:
-            interception_reward = 0.0
-
-        # Penalty for being too far from scorer — forces following
+ 
+        # --- Primary signal: be at the blocking point ---
+        # Scale=3.0 → reward ≈ 0.05 at 1 m away, ≈ 1.0 at 0 m.
+        # Multiplier=5.0 keeps total reward in a healthy range.
+        blocking_reward = 5.0 * math.exp(-3.0 * dist_to_block)
+ 
+        # --- Small facing bonus: angle between robot heading and
+        #     direction toward blocking point.
+        #     Discourages spinning in place without moving. ---
+        desired_heading = math.atan2(dy, dx)
+        heading_error = desired_heading - self.robot_yaw
+        # Wrap to [-pi, pi]
+        heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
+        # cos maps 0 error → +1, pi error → -1; scale small so it
+        # guides rather than dominates.
+        facing_reward = 0.3 * math.cos(heading_error)
+ 
+        # --- Collision penalty ---
         dist_to_scorer = math.sqrt(
-            (self.robot_x - self.scorer_x)**2 +
-            (self.robot_y - self.scorer_y)**2
+            (self.robot_x - self.scorer_x) ** 2 +
+            (self.robot_y - self.scorer_y) ** 2
         )
-        if dist_to_scorer > 1.5:
-            far_penalty = -0.5 * (dist_to_scorer - 2.5)
-        else:
-            far_penalty = 0.0
-
-        # Collision avoidance
-        if dist_to_scorer < 0.6:
-            collision_penalty = -5.0
-        else:
-            collision_penalty = 0.0
-
-        # Speed penalty when close to block point
-        if dist_to_block < 0.5:
-            linear_vel = abs(self.last_linear_vel) if hasattr(self, 'last_linear_vel') else 0.0
-            speed_penalty = -1.0 * linear_vel
-        else:
-            speed_penalty = 0.0
-
-        time_penalty = -0.05
+        collision_penalty = -5.0 if dist_to_scorer < 0.6 else 0.0
+ 
+        # --- Goal / paint penalty ---
         goal_penalty = -15.0 if self._scorer_reached_paint() else 0.0
-
-        return (proximity_reward + interception_reward + far_penalty +
-                collision_penalty + speed_penalty + time_penalty + goal_penalty)
+ 
+        # --- Small time cost to encourage urgency ---
+        time_penalty = -0.05
+ 
+        return (blocking_reward + facing_reward +
+                collision_penalty + goal_penalty + time_penalty)
     
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x
