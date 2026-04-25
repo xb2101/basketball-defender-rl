@@ -17,7 +17,7 @@ def main():
 
         checkpoint_callback = CheckpointCallback(
             save_freq=50_000,
-            save_path='./checkpoints_gaussian/',
+            save_path='./checkpoints_gaussian_v2/',
             name_prefix='defender_ppo'
         )
 
@@ -41,18 +41,18 @@ def main():
                 clip_range=0.2,
                 ent_coef=0.01,
                 device='cpu',
-                tensorboard_log="./tb_logs_expGaussian/"
+                tensorboard_log="./tb_logs_expGaussian_v2/"
             )
 
         print("Starting training...")
         model.learn(
-            total_timesteps=300_000,
+            total_timesteps=500_000,
             reset_num_timesteps=True,
             callback=checkpoint_callback
         )
 
         print("Saving model...")
-        model.save("defender_ppo_model_expB_Gaussian")
+        model.save("defender_ppo_gaussian_v2")
         print("Done.")
 
     finally:

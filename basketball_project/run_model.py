@@ -29,8 +29,8 @@ def main():
         print("WARNING: Timed out waiting for simulator data!")
 
     print("Loading trained model...")
-    model = PPO.load("checkpoints_simple/defender_ppo_250000_steps", device='cpu')
-    #model = PPO.load("defender_ppo_model.zip", device='cpu')
+    #model = PPO.load("checkpoints_gaussian/defender_ppo_250000_steps", device='cpu')
+    model = PPO.load("defender_ppo_model_expB_Gaussian.zip", device='cpu')
 
     try:
         obs, _ = env.reset()

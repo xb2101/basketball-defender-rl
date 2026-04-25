@@ -172,6 +172,13 @@ class DefenderRLEnv(gym.Env):
         )
         collision_penalty = -5.0 if dist_to_scorer < 0.6 else 0.0
 
+        # Out of bounds penalty
+        out_of_bounds = (
+            self.robot_x < 0.0 or self.robot_x > 5.0 or
+            self.robot_y < -4.0 or self.robot_y > 4.0
+        )
+        bounds_penalty = -10.0 if out_of_bounds else 0.0
+
         # Goal penalty
         goal_penalty = -15.0 if self._scorer_reached_paint() else 0.0
 
@@ -179,7 +186,8 @@ class DefenderRLEnv(gym.Env):
         time_penalty = -0.05
 
         return (blocking_reward + facing_reward +
-                collision_penalty + goal_penalty + time_penalty)
+                collision_penalty + bounds_penalty +
+                goal_penalty + time_penalty)
         
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x
@@ -236,14 +244,18 @@ class DefenderRLEnv(gym.Env):
         while rclpy.ok() and (time.time() - start) < self.step_dt:
             rclpy.spin_once(self.node, timeout_sec=0.01)
 
-
         obs = self._get_obs()
         reward = self._compute_reward()
-        terminated = self._scorer_reached_paint()
+
+        out_of_bounds = (
+            self.robot_x < 0.0 or self.robot_x > 5.0 or
+            self.robot_y < -4.0 or self.robot_y > 4.0
+        )
+        terminated = self._scorer_reached_paint() or out_of_bounds
         truncated = self.current_step >= self.max_steps
 
-        return obs, reward, terminated, truncated, {'scorer_reached_paint': terminated}
-
+        return obs, reward, terminated, truncated, {'scorer_reached_paint': self._scorer_reached_paint()}
+    
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.current_step = 0
