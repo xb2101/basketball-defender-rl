@@ -122,8 +122,8 @@ class DefenderRLEnv(gym.Env):
         if dist < 1e-6:
             return self.scorer_x, self.scorer_y
         ux, uy = dx / dist, dy / dist
-        target_x = self.scorer_x + 0.3 * ux
-        target_y = self.scorer_y + 0.3 * uy
+        target_x = self.scorer_x + 0.6 * ux
+        target_y = self.scorer_y + 0.6 * uy
         # Cap to court boundaries only
         target_x = max(0.0, min(5.0, target_x))
         target_y = max(-4.0, min(4.0, target_y))
@@ -157,7 +157,7 @@ class DefenderRLEnv(gym.Env):
         dist_to_block = math.sqrt(dx * dx + dy * dy)
 
         # Primary signal: be at the blocking point
-        blocking_reward = 5.0 * math.exp(-3.0 * dist_to_block)
+        blocking_reward = 5.0 * math.exp(-1.5 * dist_to_block)
 
         # Small facing bonus — discourages spinning in place
         desired_heading = math.atan2(dy, dx)
@@ -185,7 +185,10 @@ class DefenderRLEnv(gym.Env):
         # Time penalty
         time_penalty = -0.05
 
-        return (blocking_reward + facing_reward +
+        #Bonus for being very close
+        close_bonus = 10.0 if dist_to_block < 0.5 else 0.0
+
+        return (blocking_reward + close_bonus + facing_reward +
                 collision_penalty + bounds_penalty +
                 goal_penalty + time_penalty)
         

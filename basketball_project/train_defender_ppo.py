@@ -17,14 +17,14 @@ def main():
 
         checkpoint_callback = CheckpointCallback(
             save_freq=50_000,
-            save_path='./checkpoints_gaussian_v2/',
+            save_path='./checkpoints_gaussian_v4/',
             name_prefix='defender_ppo'
         )
 
-        #if os.path.exists("checkpoints/defender_ppo_450000_steps.zip"):
-            #print("Loading 400k checkpoint...")
-            #model = PPO.load("checkpoints/defender_ppo_450000_steps", env=env, device='cpu')
-        if os.path.exists("defender_ppo_model.zip"):
+        if os.path.exists("checkpoints_gaussian_v3/defender_ppo_700000_steps.zip"):
+            print("Loading Gaussian_V3 700k checkpoint...")
+            model = PPO.load("checkpoints_gaussian_v3/defender_ppo_700000_steps", env=env, device='cpu')
+        elif os.path.exists("defender_ppo_model.zip"):
             print("Loading existing model...")
             model = PPO.load("defender_ppo_model", env=env, device='cpu')
         else:
@@ -41,18 +41,18 @@ def main():
                 clip_range=0.2,
                 ent_coef=0.01,
                 device='cpu',
-                tensorboard_log="./tb_logs_expGaussian_v2/"
+                tensorboard_log="./tb_logs_expGaussian_v4/"
             )
 
         print("Starting training...")
         model.learn(
-            total_timesteps=500_000,
-            reset_num_timesteps=True,
+            total_timesteps=300_000,
+            reset_num_timesteps=False,
             callback=checkpoint_callback
         )
 
         print("Saving model...")
-        model.save("defender_ppo_gaussian_v2")
+        model.save("defender_ppo_gaussian_v4")
         print("Done.")
 
     finally:
