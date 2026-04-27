@@ -28,9 +28,9 @@ def main():
     else:
         print("WARNING: Timed out waiting for simulator data!")
 
-    print("Loading trained hpc model  ...")
+    print("Loading trained hpc v4 model  ...")
     #model = PPO.load("checkpoints_gaussian_v3/defender_ppo_650000_steps", device='cpu')
-    model = PPO.load("defender_ppo_hpc_final.zip", device='cpu')
+    model = PPO.load("defender_hpc_v4_final", device='cpu')
 
     try:
         obs, _ = env.reset()

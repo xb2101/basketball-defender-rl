@@ -172,7 +172,7 @@ class DefenderRLEnv(gym.Env):
         if btg_dist > 1e-6:
             t = ((self.robot_x - self.scorer_x) * ball_to_goal_x +
                 (self.robot_y - self.scorer_y) * ball_to_goal_y) / (btg_dist ** 2)
-            t = max(0.0, min(1.0, t))
+            t = max(0.0, min(0.5, t))
             proj_x = self.scorer_x + t * ball_to_goal_x
             proj_y = self.scorer_y + t * ball_to_goal_y
             lateral_dist = math.sqrt((self.robot_x - proj_x)**2 + (self.robot_y - proj_y)**2)
@@ -203,7 +203,7 @@ class DefenderRLEnv(gym.Env):
         # Smoothness penalty
         smoothness_penalty = -0.5 * abs(self.last_angular_vel)
 
-        return (blocking_reward + close_bonus + facing_reward +
+        return (blocking_reward + facing_reward +
                 interception_reward + collision_penalty +
                 bounds_penalty + goal_penalty + time_penalty + 
                 smoothness_penalty)
@@ -281,7 +281,7 @@ class DefenderRLEnv(gym.Env):
         self._stop_robot()
 
         # Randomize defender start - full court
-        defender_x = np.random.uniform(0.5, 3.0)
+        defender_x = np.random.uniform(2.5, 4.5)
         defender_y = np.random.uniform(-3.0, 3.0)
 
         # Randomize scorer start - full court
