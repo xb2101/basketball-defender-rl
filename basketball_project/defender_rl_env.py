@@ -159,18 +159,36 @@ class DefenderRLEnv(gym.Env):
         # Primary signal: be at the blocking point
         blocking_reward = 5.0 * math.exp(-1.5 * dist_to_block)
 
-        # Small facing bonus — discourages spinning in place
+        # Close bonus
+        close_bonus = 10.0 if dist_to_block < 0.5 else 0.0
+
+        # Facing bonus
         desired_heading = math.atan2(dy, dx)
         heading_error = desired_heading - self.robot_yaw
         heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
         facing_reward = 0.3 * math.cos(heading_error)
+
+        # Interception line reward
+        ball_to_goal_x = self.goal_x - self.scorer_x
+        ball_to_goal_y = self.goal_y - self.scorer_y
+        btg_dist = math.sqrt(ball_to_goal_x**2 + ball_to_goal_y**2)
+        if btg_dist > 1e-6:
+            t = ((self.robot_x - self.scorer_x) * ball_to_goal_x +
+                (self.robot_y - self.scorer_y) * ball_to_goal_y) / (btg_dist ** 2)
+            t = max(0.0, min(1.0, t))
+            proj_x = self.scorer_x + t * ball_to_goal_x
+            proj_y = self.scorer_y + t * ball_to_goal_y
+            lateral_dist = math.sqrt((self.robot_x - proj_x)**2 + (self.robot_y - proj_y)**2)
+            interception_reward = 3.0 * math.exp(-3.0 * lateral_dist)
+        else:
+            interception_reward = 0.0
 
         # Collision penalty
         dist_to_scorer = math.sqrt(
             (self.robot_x - self.scorer_x) ** 2 +
             (self.robot_y - self.scorer_y) ** 2
         )
-        collision_penalty = -5.0 if dist_to_scorer < 0.6 else 0.0
+        collision_penalty = -5.0 if dist_to_scorer < 0.3 else 0.0
 
         # Out of bounds penalty
         out_of_bounds = (
@@ -185,13 +203,10 @@ class DefenderRLEnv(gym.Env):
         # Time penalty
         time_penalty = -0.05
 
-        #Bonus for being very close
-        close_bonus = 10.0 if dist_to_block < 0.5 else 0.0
-
         return (blocking_reward + close_bonus + facing_reward +
-                collision_penalty + bounds_penalty +
-                goal_penalty + time_penalty)
-        
+                interception_reward + collision_penalty +
+                bounds_penalty + goal_penalty + time_penalty)
+            
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x
         dy = self.goal_y - self.scorer_y
