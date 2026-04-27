@@ -159,9 +159,6 @@ class DefenderRLEnv(gym.Env):
         # Primary signal: be at the blocking point
         blocking_reward = 5.0 * math.exp(-1.5 * dist_to_block)
 
-        # Close bonus
-        close_bonus = 10.0 * math.exp(-5.0 * dist_to_block)
-
         # Facing bonus
         desired_heading = math.atan2(dy, dx)
         heading_error = desired_heading - self.robot_yaw
