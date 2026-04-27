@@ -160,7 +160,7 @@ class DefenderRLEnv(gym.Env):
         blocking_reward = 5.0 * math.exp(-1.5 * dist_to_block)
 
         # Close bonus
-        close_bonus = 10.0 if dist_to_block < 0.5 else 0.0
+        close_bonus = 10.0 * math.exp(-5.0 * dist_to_block)
 
         # Facing bonus
         desired_heading = math.atan2(dy, dx)
@@ -203,9 +203,13 @@ class DefenderRLEnv(gym.Env):
         # Time penalty
         time_penalty = -0.05
 
+        # Smoothness penalty
+        smoothness_penalty = -0.5 * abs(self.last_angular_vel)
+
         return (blocking_reward + close_bonus + facing_reward +
                 interception_reward + collision_penalty +
-                bounds_penalty + goal_penalty + time_penalty)
+                bounds_penalty + goal_penalty + time_penalty + 
+                smoothness_penalty)
             
     def _scorer_reached_paint(self):
         dx = self.goal_x - self.scorer_x
