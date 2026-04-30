@@ -28,12 +28,12 @@ SCORER_STARTS = [
     (2.5,  3.0),
     (4.5, -3.5),
     (4.5,  3.5),
-    (3.0, -2.0),
-    (3.0,  2.0),
+    (1.0, -3.0),
+    (1.0,  3.0),
 ]
 
 GOAL_X, GOAL_Y = 5.0, 0.0
-PAINT_RADIUS = 0.8
+PAINT_RADIUS = 1.0
 
 
 def parse_args():
@@ -165,7 +165,7 @@ def main():
             action, _ = model.predict(obs, deterministic=True)
 
             cmd = Twist()
-            cmd.linear.x = float(action[0])
+            cmd.linear.x = float(np.clip(action[0], -0.3, 0.3))
             cmd.angular.z = float(action[1])
             node.cmd_pub.publish(cmd)
 
