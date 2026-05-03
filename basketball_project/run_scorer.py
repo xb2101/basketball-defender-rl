@@ -3,7 +3,7 @@
 run_scorer.py — Load and visualize a trained scorer checkpoint in Gazebo.
 
 Usage:
-    python3 run_scorer.py --checkpoint scorer_hpc_v1_final
+    python3 run_scorer.py --checkpoint scorer_hpc_v6_final
 """
 
 import argparse
@@ -21,7 +21,6 @@ from stable_baselines3 import PPO
 import numpy as np
 
 
-# 3-point arc spawn positions
 SCORER_STARTS = [
     (1.0,  0.0),
     (2.5, -3.0),
@@ -42,6 +41,8 @@ def parse_args():
                         help='Path to scorer model checkpoint (omit .zip)')
     parser.add_argument('--episodes', type=int, default=0,
                         help='Number of episodes to run (0 = run forever)')
+    parser.add_argument('--obs', type=int, default=10,
+                        help='Observation size: 7 for Phase 1 models, 10 for Phase 2 models')
     return parser.parse_args()
 
 
@@ -49,9 +50,7 @@ class ScorerRunner(Node):
     def __init__(self):
         super().__init__('scorer_runner')
 
-        # Scorer robot cmd_vel — uses scorer_robot entity
         self.cmd_pub = self.create_publisher(Twist, '/scorer_robot/cmd_vel', 10)
-
         self.model_sub = self.create_subscription(
             ModelStates, '/gazebo/model_states',
             self.model_states_callback, 10
@@ -65,6 +64,8 @@ class ScorerRunner(Node):
         self.robot_x: Optional[float] = None
         self.robot_y: Optional[float] = None
         self.robot_yaw: Optional[float] = None
+        self.defender_x: Optional[float] = None
+        self.defender_y: Optional[float] = None
 
     def quaternion_to_yaw(self, x, y, z, w):
         siny_cosp = 2.0 * (w * z + x * y)
@@ -84,18 +85,47 @@ class ScorerRunner(Node):
         except ValueError:
             pass
 
-    def get_obs(self):
+        try:
+            idx = msg.name.index('defender')
+            pose = msg.pose[idx]
+            self.defender_x = pose.position.x
+            self.defender_y = pose.position.y
+        except ValueError:
+            pass
+
+    def get_obs_7(self):
+        """7-observation version for Phase 1 models."""
         dist_to_paint = math.sqrt(
             (GOAL_X - self.robot_x) ** 2 + (GOAL_Y - self.robot_y) ** 2
         )
         angle_to_goal = math.atan2(GOAL_Y - self.robot_y, GOAL_X - self.robot_x)
         heading_error = angle_to_goal - self.robot_yaw
         heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
-
         return np.array([
             self.robot_x, self.robot_y, self.robot_yaw,
             GOAL_X, GOAL_Y,
             dist_to_paint,
+            heading_error,
+        ], dtype=np.float32)
+
+    def get_obs_10(self):
+        """10-observation version for Phase 2 models."""
+        dist_to_paint = math.sqrt(
+            (GOAL_X - self.robot_x) ** 2 + (GOAL_Y - self.robot_y) ** 2
+        )
+        dist_to_defender = math.sqrt(
+            (self.defender_x - self.robot_x) ** 2 +
+            (self.defender_y - self.robot_y) ** 2
+        )
+        angle_to_goal = math.atan2(GOAL_Y - self.robot_y, GOAL_X - self.robot_x)
+        heading_error = angle_to_goal - self.robot_yaw
+        heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
+        return np.array([
+            self.robot_x, self.robot_y, self.robot_yaw,
+            self.defender_x, self.defender_y,
+            GOAL_X, GOAL_Y,
+            dist_to_paint,
+            dist_to_defender,
             heading_error,
         ], dtype=np.float32)
 
@@ -124,10 +154,13 @@ class ScorerRunner(Node):
         )
         return dist <= PAINT_RADIUS
 
-    def wait_for_obs(self, timeout=5.0):
+    def wait_for_obs(self, timeout=5.0, need_defender=True):
         start = time.time()
         while rclpy.ok() and (time.time() - start) < timeout:
-            if all(v is not None for v in [self.robot_x, self.robot_y, self.robot_yaw]):
+            needed = [self.robot_x, self.robot_y, self.robot_yaw]
+            if need_defender:
+                needed += [self.defender_x, self.defender_y]
+            if all(v is not None for v in needed):
                 return True
             rclpy.spin_once(self, timeout_sec=0.05)
         return False
@@ -135,6 +168,7 @@ class ScorerRunner(Node):
 
 def main():
     args = parse_args()
+    use_10_obs = args.obs == 10
 
     if not rclpy.ok():
         rclpy.init()
@@ -142,7 +176,7 @@ def main():
     node = ScorerRunner()
 
     print("Waiting for simulator...")
-    node.wait_for_obs()
+    node.wait_for_obs(need_defender=use_10_obs)
     print("Simulator ready!")
 
     print(f"Loading scorer model: {args.checkpoint}")
@@ -152,12 +186,11 @@ def main():
     step_dt = 0.05
 
     try:
-        # Reset to random start position
         sx, sy = SCORER_STARTS[np.random.randint(len(SCORER_STARTS))]
         node.set_pose(sx, sy)
         time.sleep(0.5)
-        node.wait_for_obs()
-        obs = node.get_obs()
+        node.wait_for_obs(need_defender=use_10_obs)
+        obs = node.get_obs_10() if use_10_obs else node.get_obs_7()
         print(f"Starting episode 1 from ({sx:.1f}, {sy:.1f})")
 
         step = 0
@@ -173,7 +206,7 @@ def main():
             while rclpy.ok() and (time.time() - start) < step_dt:
                 rclpy.spin_once(node, timeout_sec=0.01)
 
-            obs = node.get_obs()
+            obs = node.get_obs_10() if use_10_obs else node.get_obs_7()
             step += 1
 
             reached = node.reached_paint()
@@ -190,13 +223,12 @@ def main():
                 if args.episodes > 0 and episode_count >= args.episodes:
                     break
 
-                # Reset
                 sx, sy = SCORER_STARTS[np.random.randint(len(SCORER_STARTS))]
                 node.set_pose(sx, sy)
                 node.stop()
                 time.sleep(0.5)
-                node.wait_for_obs()
-                obs = node.get_obs()
+                node.wait_for_obs(need_defender=use_10_obs)
+                obs = node.get_obs_10() if use_10_obs else node.get_obs_7()
                 step = 0
                 print(f"Starting episode {episode_count + 1} from ({sx:.1f}, {sy:.1f})")
 
