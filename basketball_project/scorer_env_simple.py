@@ -2,21 +2,18 @@
 """
 scorer_env_simple.py — Pure Python scorer environment (no ROS2/Gazebo).
 
-Phase 2 v9: Scorer trains against frozen trained defender.
+Phase 2 v10: Scorer trains against frozen trained defender.
 - 10 observations including defender position
 - Scorer can see defender and learn to navigate around it
-- Fresh start (no checkpoint)
+- Continues from v7 checkpoint
 
-Changes from v8:
-- Collision penalty doubled to -20.0 (was -10.0) — strong enough to actually
-  outweigh the paint reward and force the scorer to find an alternate route.
-  Key insight: in pure Python sim there is no real physics, so the scorer was
-  just walking through the defender and taking the penalty number while the
-  paint reward still won out. The penalty must be strong enough to make going
-  straight unprofitable.
-- Paint bonus increased from 30.0 to 50.0 to make reaching paint via a
-  bypass route still worth the effort
-- Lateral encouragement reward kept from v8
+Changes from v9:
+- Collision penalty reduced to -15.0 (was -20.0 in v9, -10.0 in v8).
+  v9 overcorrected — scorer learned to flee the defender entirely.
+  -15 is the middle ground: strong enough to discourage going straight
+  through, not so strong it abandons the paint entirely.
+- Paint bonus kept at 50.0 (from v9)
+- Lateral encouragement kept from v8
 - Facing reward still removed
 
 Observation space (10 dims):
@@ -204,11 +201,10 @@ class ScorerEnvSimple(gym.Env):
         paint_bonus = 50.0 if dist_to_paint <= PAINT_RADIUS else 0.0
 
         # Distance-scaled collision penalty — kicks in from 1.0m, grows as scorer gets closer.
-        # Doubled to -20.0 (was -10.0) so it actually outweighs the paint reward and forces
-        # the scorer to find an alternate route rather than walking straight through.
+        # Set to -15.0: middle ground between v8 (-10, too weak) and v9 (-20, too strong/scorer fled).
         if dist_to_defender < DEFENDER_AVOID_RADIUS:
-            # Scales from 0 at 1.0m to -20 at 0m
-            collision_penalty = -20.0 * (1.0 - dist_to_defender / DEFENDER_AVOID_RADIUS)
+            # Scales from 0 at 1.0m to -15 at 0m
+            collision_penalty = -15.0 * (1.0 - dist_to_defender / DEFENDER_AVOID_RADIUS)
         else:
             collision_penalty = 0.0
 
