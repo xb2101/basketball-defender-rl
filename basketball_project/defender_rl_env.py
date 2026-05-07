@@ -37,7 +37,7 @@ class DefenderRLEnv(gym.Env):
             self.node.get_logger().info('Waiting for /gazebo/set_entity_state...')
 
         self.robot_name = 'defender'
-        self.scorer_name = 'scorer'
+        self.scorer_name = 'scorer_robot'
 
         self.robot_x: Optional[float] = None
         self.robot_y: Optional[float] = None

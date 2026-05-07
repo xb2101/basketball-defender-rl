@@ -12,7 +12,7 @@ def main():
     env = DefenderRLEnv()
 
     # Enable visual markers - if you want to see the green sphere (ideal blocking point)
-    env.show_markers = True
+    env.show_markers = False
 
     print("Waiting for simulator to be ready...")
     timeout = 10.0
