@@ -56,22 +56,22 @@ def generate_launch_description():
     #     ]
     # )
 
-    # spawn_defender = TimerAction(
-    #     period=4.0,
-    #     actions=[
-    #         ExecuteProcess(
-    #             cmd=[
-    #                 'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
-    #                 '-file', turtlebot_model_path,
-    #                 '-entity', 'defender',
-    #                 '-x', '2.0',
-    #                 '-y', '0.0',
-    #                 '-z', '0.1'
-    #             ],
-    #             output='screen'
-    #         )
-    #     ]
-    # )
+    spawn_defender = TimerAction(
+        period=4.0,
+        actions=[
+            ExecuteProcess(
+                cmd=[
+                    'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
+                    '-file', turtlebot_model_path,
+                    '-entity', 'defender',
+                    '-x', '2.0',
+                    '-y', '0.0',
+                    '-z', '0.1'
+                ],
+                output='screen'
+            )
+        ]
+    )
 
     spawn_scorer_robot = TimerAction(
         period=5.0,
@@ -108,7 +108,7 @@ def generate_launch_description():
         set_gazebo_plugin_path,
         gazebo,
         # spawn_scorer,
-        # spawn_defender,
+        spawn_defender,
         spawn_scorer_robot,
         # start_scorer_controller,
     ])

@@ -270,7 +270,7 @@ class DefenderRLEnv(gym.Env):
             self.robot_x < 0.0 or self.robot_x > 5.0 or
             self.robot_y < -4.0 or self.robot_y > 4.0
         )
-        terminated = self._scorer_reached_paint() or out_of_bounds
+        terminated = self._scorer_reached_paint()
         truncated = self.current_step >= self.max_steps
 
         return obs, reward, terminated, truncated, {'scorer_reached_paint': self._scorer_reached_paint()}
