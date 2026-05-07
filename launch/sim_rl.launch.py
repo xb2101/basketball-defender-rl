@@ -39,22 +39,22 @@ def generate_launch_description():
         output='screen'
     )
 
-    # spawn_scorer = TimerAction(
-    #     period=2.0,
-    #     actions=[
-    #         ExecuteProcess(
-    #             cmd=[
-    #                 'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
-    #                 '-file', scorer_model_path,
-    #                 '-entity', 'scorer',
-    #                 '-x', '1.0',
-    #                 '-y', '0.0',
-    #                 '-z', '0.2'
-    #             ],
-    #             output='screen'
-    #         )
-    #     ]
-    # )
+    spawn_scorer = TimerAction(
+        period=2.0,
+        actions=[
+            ExecuteProcess(
+                cmd=[
+                    'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
+                    '-file', scorer_model_path,
+                    '-entity', 'scorer',
+                    '-x', '1.0',
+                    '-y', '0.0',
+                    '-z', '0.2'
+                ],
+                output='screen'
+            )
+        ]
+    )
 
     spawn_defender = TimerAction(
         period=4.0,
@@ -73,42 +73,42 @@ def generate_launch_description():
         ]
     )
 
-    spawn_scorer_robot = TimerAction(
-        period=5.0,
-        actions=[
-            ExecuteProcess(
-                cmd=[
-                    'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
-                    '-file', turtlebot_model_path,
-                    '-entity', 'scorer_robot',
-                    '-robot_namespace', 'scorer_robot',
-                    '-x', '1.0',
-                    '-y', '2.0',
-                    '-z', '0.1'
-                ],
-                output='screen'
-            )
-        ]
-    )
-
-    # start_scorer_controller = TimerAction(
-    #     period=6.0,
+    # spawn_scorer_robot = TimerAction(
+    #     period=5.0,
     #     actions=[
-    #         Node(
-    #             package='basketball_project',
-    #             executable='scorer_controller',
+    #         ExecuteProcess(
+    #             cmd=[
+    #                 'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
+    #                 '-file', turtlebot_model_path,
+    #                 '-entity', 'scorer_robot',
+    #                 '-robot_namespace', 'scorer_robot',
+    #                 '-x', '1.0',
+    #                 '-y', '2.0',
+    #                 '-z', '0.1'
+    #             ],
     #             output='screen'
     #         )
     #     ]
     # )
+
+    start_scorer_controller = TimerAction(
+        period=6.0,
+        actions=[
+            Node(
+                package='basketball_project',
+                executable='scorer_controller',
+                output='screen'
+            )
+        ]
+    )
 
     return LaunchDescription([
         set_tb3_model,
         set_gazebo_model_path,
         set_gazebo_plugin_path,
         gazebo,
-        #spawn_scorer,
+        spawn_scorer,
         spawn_defender,
-        spawn_scorer_robot,
-        #start_scorer_controller,
+        # spawn_scorer_robot,
+        start_scorer_controller,
     ])

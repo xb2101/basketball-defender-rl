@@ -7,8 +7,8 @@ Updated with all latest reward changes:
 - Close bonus 10.0 at 0.5m
 - Blocking point at 0.6m
 - Out of bounds penalty and termination
-- Smoothness penalty increased to -3.0 (was -1.5) to reduce oscillation
-- Velocity penalty increased to -2.5 (was -1.0) within 0.5m of blocking point 
+- Smoothness penalty increased to -2.0 (was -1.5) to reduce oscillation
+- Velocity penalty increased to -1.5 (was -1.0) within 0.5m of blocking point 
   to force defender to hold position once it arrives instead of overshooting
 """
 
@@ -202,11 +202,11 @@ class DefenderEnvSimple(gym.Env):
         time_penalty = -0.05
 
         # Smoothness penalty - increased from -1.5 to -3.0 to reduce oscillation
-        smoothness_penalty = -3.0 * abs(self.last_angular_vel)
+        smoothness_penalty = -2.0 * abs(self.last_angular_vel)
 
         # Velocity penalty when close to blocking point - increased from -1.0 to -2.5
         # to force defender to hold position once it arrives instead of overshooting
-        velocity_penalty = -2.5 * abs(self.last_linear_vel) if dist_to_block < 0.5 else 0.0
+        velocity_penalty = -1.5 * abs(self.last_linear_vel) if dist_to_block < 0.5 else 0.0
 
         return (blocking_reward + facing_reward +
                 interception_reward + collision_penalty +

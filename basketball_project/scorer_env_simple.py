@@ -2,22 +2,18 @@
 """
 scorer_env_simple.py — Pure Python scorer environment (no ROS2/Gazebo).
 
-Phase 2 v11: Scorer trains against frozen trained defender.
+Phase 2 v14: Scorer trains against frozen trained defender (real v6).
 - 10 observations including defender position
-- Scorer can see defender and learn to navigate around it
-- Continues from v10 checkpoint
+- Fresh start (no checkpoint)
 
-Changes from v10:
-- Added collision termination: if scorer gets within 0.3m of defender,
-  the episode ends immediately with a -30 terminal penalty.
-  v10 showed that scaled penalties alone (-10, -15, -20) are not enough —
-  the scorer just absorbs the penalty and keeps going straight. Making
-  collision a hard episode-ending failure (like out of bounds) forces the
-  scorer to treat the defender as a real barrier it cannot pass through.
-- Collision penalty at -15 kept as an early warning signal
-- Paint bonus kept at 50.0
+Changes from v13:
+- Collision termination removed — v13 showed the scorer was getting
+  terminated too early before learning anything useful, leading to
+  erratic circular behavior and high policy variance (std 7.0+)
+- Keeping -15 scaled collision penalty from v10 as soft avoidance signal
 - Lateral encouragement kept from v8
-- Facing reward still removed
+- Paint bonus kept at 50.0
+- Training against real v6 defender (defender_hpc_v6_final)
 
 Observation space (10 dims):
 [scorer_x, scorer_y, scorer_yaw,
@@ -273,21 +269,10 @@ class ScorerEnvSimple(gym.Env):
             self.robot_x < COURT_X_MIN or self.robot_x > COURT_X_MAX or
             self.robot_y < COURT_Y_MIN or self.robot_y > COURT_Y_MAX
         )
-        dist_to_defender = math.sqrt(
-            (self.defender.x - self.robot_x) ** 2 +
-            (self.defender.y - self.robot_y) ** 2
-        )
-        collided = dist_to_defender < 0.3
-        if collided:
-            reward += -30.0  # terminal penalty on top of existing reward
-
-        terminated = self._reached_paint() or out_of_bounds or collided
+        terminated = self._reached_paint() or out_of_bounds
         truncated = self.current_step >= MAX_STEPS
 
-        return obs, reward, terminated, truncated, {
-            'reached_paint': self._reached_paint(),
-            'collided': collided
-        }
+        return obs, reward, terminated, truncated, {'reached_paint': self._reached_paint()}
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
