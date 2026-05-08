@@ -6,3 +6,4 @@ tb_logs*/
 __pycache__/
 *.pyc
 __pycache__/
+*:Zone.Identifier
