@@ -71,7 +71,7 @@ def main():
     )
 
     print("Saving final model...")
-    model.save("defender_ppo_hpc_v7_final")
+    model.save("defender_ppo_hpc_v6_final")
     print("Done.")
     env.close()
 

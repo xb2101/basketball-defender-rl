@@ -21,7 +21,7 @@ def parse_args():
                         help='Path to scorer checkpoint to resume from (omit .zip)')
     parser.add_argument('--defender', type=str, default='defender_ppo_hpc_final',
                         help='Path to frozen defender model (omit .zip)')
-    parser.add_argument('--save-dir', type=str, default='./checkpoints_scorer_v2/',
+    parser.add_argument('--save-dir', type=str, default='./checkpoints_scorer_v7/',
                         help='Directory to save checkpoints')
     parser.add_argument('--save-freq', type=int, default=500_000,
                         help='Save checkpoint every N steps')
@@ -59,9 +59,9 @@ def main():
             gamma=0.99,
             gae_lambda=0.95,
             clip_range=0.2,
-            ent_coef=0.01,  # lowered entropy for v3
+            ent_coef=0.01,  # entropy coefficient
             device='cpu',
-            tensorboard_log="./tb_logs_scorer_v14/"
+            tensorboard_log="./tb_logs_scorer_v6/"
         )
         reset_timesteps = True
 
@@ -73,7 +73,7 @@ def main():
     )
 
     print("Saving final scorer model...")
-    model.save("scorer_ppo_hpc_v14_final")
+    model.save("scorer_ppo_hpc_v7_final")
     print("Done.")
     env.close()
 

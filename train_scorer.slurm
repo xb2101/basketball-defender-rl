@@ -18,6 +18,6 @@ export TMPDIR=/scratch/xb2101/tmp
 
 cd /scratch/xb2101/basketball_project
 
-/scratch/xb2101/basketball_rl/bin/python train_scorer_hpc.py --steps 20000000 --defender ./defender_hpc_v6_final --save-dir ./checkpoints_scorer_v14/ --save-freq 500000
+/scratch/xb2101/basketball_rl/bin/python train_scorer_hpc.py --steps 10000000 --checkpoint ./scorer_ppo_hpc_v6_final --defender ./defender_hpc_v6_final --save-dir ./checkpoints_scorer_v7/ --save-freq 500000
 
 echo "Scorer training complete!"
