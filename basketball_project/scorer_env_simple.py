@@ -2,18 +2,9 @@
 """
 scorer_env_simple.py — Pure Python scorer environment (no ROS2/Gazebo).
 
-Phase 2 v14: Scorer trains against frozen trained defender (real v6).
+Phase 2: Scorer trains against frozen trained defender.
 - 10 observations including defender position
-- Fresh start (no checkpoint)
-
-Changes from v13:
-- Collision termination removed — v13 showed the scorer was getting
-  terminated too early before learning anything useful, leading to
-  erratic circular behavior and high policy variance (std 7.0+)
-- Keeping -15 scaled collision penalty from v10 as soft avoidance signal
-- Lateral encouragement kept from v8
-- Paint bonus kept at 50.0
-- Training against real v6 defender (defender_hpc_v6_final)
+- Scorer can see defender and learn to navigate around it
 
 Observation space (10 dims):
 [scorer_x, scorer_y, scorer_yaw,
@@ -39,11 +30,6 @@ STEP_DT = 0.05
 MAX_STEPS = 500
 MAX_LINEAR = 0.6
 MAX_ANGULAR = 2.0
-
-# Distance at which scorer starts being penalized for proximity to defender
-DEFENDER_AVOID_RADIUS = 1.0
-# Distance at which lateral encouragement kicks in
-LATERAL_ENCOURAGE_RADIUS = 1.5
 
 SCORER_STARTS = [
     (1.0,  0.0),
@@ -196,37 +182,17 @@ class ScorerEnvSimple(gym.Env):
         # Primary: get to the paint
         paint_reward = 5.0 * math.exp(-1.5 * dist_to_paint)
 
-        # Big bonus for reaching paint — increased to 50.0 to make bypassing worth the effort
-        paint_bonus = 50.0 if dist_to_paint <= PAINT_RADIUS else 0.0
+        # Big bonus for reaching paint
+        paint_bonus = 30.0 if dist_to_paint <= PAINT_RADIUS else 0.0
 
-        # Distance-scaled collision penalty — kicks in from 1.0m, grows as scorer gets closer.
-        # Set to -15.0: middle ground between v8 (-10, too weak) and v9 (-20, too strong/scorer fled).
-        if dist_to_defender < DEFENDER_AVOID_RADIUS:
-            # Scales from 0 at 1.0m to -15 at 0m
-            collision_penalty = -15.0 * (1.0 - dist_to_defender / DEFENDER_AVOID_RADIUS)
-        else:
-            collision_penalty = 0.0
+        # Facing reward
+        angle_to_goal = math.atan2(GOAL_Y - self.robot_y, GOAL_X - self.robot_x)
+        heading_error = angle_to_goal - self.robot_yaw
+        heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
+        facing_reward = 0.5 * math.cos(heading_error)
 
-        # Lateral encouragement: when defender is close, reward movement perpendicular
-        # to the scorer→defender axis. This nudges the scorer to commit to going around
-        # rather than wobbling back and forth in place.
-        lateral_reward = 0.0
-        if dist_to_defender < LATERAL_ENCOURAGE_RADIUS:
-            # Unit vector from scorer to defender
-            ddx = self.defender.x - self.robot_x
-            ddy = self.defender.y - self.robot_y
-            if dist_to_defender > 1e-6:
-                ddx /= dist_to_defender
-                ddy /= dist_to_defender
-            # Lateral direction is perpendicular: (-ddy, ddx)
-            # Scorer's current velocity direction
-            vx = self.last_linear_vel * math.cos(self.robot_yaw)
-            vy = self.last_linear_vel * math.sin(self.robot_yaw)
-            # Dot product with lateral direction — positive means moving sideways
-            lateral_component = abs(vx * (-ddy) + vy * ddx)
-            # Scale reward by how close the defender is (stronger when very close)
-            proximity_scale = 1.0 - dist_to_defender / LATERAL_ENCOURAGE_RADIUS
-            lateral_reward = 2.0 * lateral_component * proximity_scale
+        # Collision penalty with defender
+        collision_penalty = -10.0 if dist_to_defender < 0.4 else 0.0
 
         # Out of bounds penalty
         out_of_bounds = (
@@ -238,9 +204,8 @@ class ScorerEnvSimple(gym.Env):
         # Time penalty
         time_penalty = -0.05
 
-        return (paint_reward + paint_bonus +
-                collision_penalty + lateral_reward +
-                bounds_penalty + time_penalty)
+        return (paint_reward + paint_bonus + facing_reward +
+                collision_penalty + bounds_penalty + time_penalty)
 
     def _reached_paint(self):
         dist = math.sqrt(
